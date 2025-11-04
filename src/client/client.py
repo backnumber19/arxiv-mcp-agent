@@ -84,7 +84,6 @@ class MCPClient:
         prompt = ""
         if params.messages:
             first_msg = params.messages[0]
-            # Message.content는 list[Content] 또는 Content일 수 있음
             if hasattr(first_msg, 'content'):
                 if isinstance(first_msg.content, list) and first_msg.content:
                     content = first_msg.content[0]
