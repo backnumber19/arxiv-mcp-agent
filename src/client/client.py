@@ -3,14 +3,6 @@ MCP Client implementation with all 3 client primitives:
 1. Roots - Filesystem boundaries
 2. Sampling - LLM output requests
 3. Elicitation - User input requests
-
-Reference:
-- Official SDK Example: https://github.com/modelcontextprotocol/python-sdk/blob/main/examples/snippets/clients
-- Sampling callback signature: RequestContext[ClientSession, None], types.CreateMessageRequestParams -> types.CreateMessageResult
-  (Reference: Line 15-32 in official example)
-- Roots callback: Returns List[types.Root] 
-  (MCP specification: https://modelcontextprotocol.io/specification/2025-06-18/client/roots)
-- Elicitation callback: Simple Dict-based (compatible with current demo.py usage)
 """
 import asyncio
 import os
