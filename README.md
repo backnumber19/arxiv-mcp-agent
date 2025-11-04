@@ -278,153 +278,26 @@ pytest tests/
 ## Example Output
 
 ### Demo Session
-```
-================================================================================
-MCP CLIENT DEMO - arXiv Integration
-================================================================================
-
-This demo shows all 3 MCP client primitives:
-  1. Roots - Filesystem boundaries
-  2. Sampling - LLM output requests
-  3. Elicitation - User input requests
-
-================================================================================
-ROOTS PRIMITIVE DEMO
-================================================================================
-1. Roots define filesystem boundaries that the server can access
-   Configured roots: ['Current Project Directory', 'Downloads Directory']
-
-   Testing Roots callback (simulating server request):
-      1. Current Project Directory: file:///path/to/project
-      2. Downloads Directory: file:///path/to/downloads
-   Roots callback working correctly!
-
-================================================================================
-SAMPLING PRIMITIVE DEMO
-================================================================================
-2. Sampling allows server to request LLM output
-   When server requests sampling, client uses Bedrock LLM to generate response
-
-   Testing Sampling callback (simulating server request):
-   Enter a prompt for the LLM (or press Enter for default):
-   Your prompt: Who are you?
-
-   LLM Response:
-   I'm Claude, an AI assistant created by Anthropic...
-   Sampling callback working correctly!
-
-✅ Connected to MCP server: arxiv-server
-[11/04/25 14:53:24] INFO     Processing request of type ListToolsRequest                                                                                                                                server.py:674
-Loaded 5 tools
-                    INFO     Processing request of type ListResourcesRequest                                                                                                                            server.py:674
-Loaded 0 resources
-
-================================================================================
-AVAILABLE TOOLS
-================================================================================
-  - get_article_url
-  - download_article
-  - load_article_to_context
-  - get_details
-  - search_arxiv
-
-================================================================================
-MENU
-================================================================================
-1. Search arXiv
-2. Get Paper Details
-3. Download Article
-4. Exit
-Select option (1-4): 1
-
-================================================================================
-ARXIV SEARCH DEMO
-================================================================================
-
-Search options:
-1. Search by general keyword (all_fields)
-2. Search by title
-3. Search by author
-4. Search by abstract
-
-Select option (1-4): 1
-Enter keyword: prompt-guided image segmentation
-[11/04/25 14:37:42] INFO     Processing request of type CallToolRequest                                                                                                                                 server.py:674
-[11/04/25 14:37:44] INFO     HTTP Request: GET https://export.arxiv.org/api/query?search_query=all%3Aprompt-guided+image+segmentation&start=0&max_results=10 "HTTP/1.1 200 OK"                        _client.py:1740
-
-Search completed
-   Found 10 results
-
-  1. Image Segmentation Algorithms Overview
-
-  2. SamDSK: Combining Segment Anything Model with Domain-Specific Knowledge
-  for Semi-Supervised Learning in Medical Image Segmentation
-
-  3. USE: Universal Segment Embeddings for Open-Vocabulary Image Segmentation
-
-================================================================================
-MENU
-================================================================================
-1. Search arXiv
-2. Get Paper Details
-3. Download Article
-4. Exit
-
-Select option (1-4): 2
-
-================================================================================
-GET PAPER DETAILS DEMO
-================================================================================
-
-Enter paper title (or press Enter for default): USE: Universal Segment Embeddings for Open-Vocabulary Image Segmentation
-
-Getting details for: USE: Universal Segment Embeddings for Open-Vocabulary Image Segmentation
-[11/04/25 14:38:13] INFO     Processing request of type CallToolRequest                                                                                                                                 server.py:674
-[11/04/25 14:38:16] INFO     HTTP Request: GET https://export.arxiv.org/api/query?search_query=ti%3AUSE+Universal+Segment+Embeddings+for+Open-Vocabulary+Image+Segmentation&start=0&max_results=25    _client.py:1740
-                             "HTTP/1.1 200 OK"                                                                                                                                                                       
-
-Details retrieved:
-   arXiv ID: 2406.05271v1
-   Title: USE: Universal Segment Embeddings for Open-Vocabulary Image Segmentation
-   Authors: ['Xiaoqi Wang', 'Wenbin He', 'Xiwei Xuan', 'Clint Sebastian', 'Jorge Piazentin O
-   Link: http://arxiv.org/abs/2406.05271v1
-   Direct PDF URL: https://arxiv.org/pdf/2406.05271v1
-
-================================================================================
-MENU
-================================================================================
-1. Search arXiv
-2. Get Paper Details
-3. Download Article
-4. Exit
-
-Select option (1-4): 3
-
-================================================================================
-DOWNLOAD ARTICLE DEMO
-================================================================================
-
-Enter paper title to download: USE: Universal Segment Embeddings for Open-Vocabulary Image Segmentation
-
-Downloading: USE: Universal Segment Embeddings for Open-Vocabulary Image Segmentation
-[11/04/25 14:38:24] INFO     Processing request of type CallToolRequest                                                                                                                                 server.py:674
-                    INFO     HTTP Request: GET https://export.arxiv.org/api/query?search_query=ti%3AUSE+Universal+Segment+Embeddings+for+Open-Vocabulary+Image+Segmentation&start=0&max_results=25    _client.py:1740
-                             "HTTP/1.1 200 OK"                                                                                                                                                                       
-[11/04/25 14:38:26] INFO     HTTP Request: GET https://arxiv.org/pdf/2406.05271v1 "HTTP/1.1 200 OK"                                                                                                   _client.py:1740
-
-Download result:
-   Download successful. Find the PDF at /path/to/downloads
-
-================================================================================
-MENU
-================================================================================
-1. Search arXiv
-2. Get Paper Details
-3. Download Article
-4. Exit
-
-Select option (1-4): 4
-✅ MCP connection closed
+```mermaid
+flowchart TD
+    A[사용자: python examples/demo.py 실행] --> B[환경 설정 확인<br/>.env 파일 로드]
+    B --> C[MCPClient 초기화<br/>- 서버 설정<br/>- Bedrock LLM 설정<br/>- Roots 설정]
+    C --> D[프리미티브 데모 실행<br/>- Roots Demo<br/>- Sampling Demo]
+    D --> E[MCPAgent 초기화<br/>client.initialize 호출]
+    E --> F[MCPClient.connect 실행<br/>- stdio 연결<br/>- ClientSession 생성<br/>- 서버 초기화]
+    F --> G[서버 연결 완료<br/>✅ Connected to MCP server]
+    G --> H[도구 목록 조회<br/>list_tools 호출]
+    H --> I[인터랙티브 메뉴 표시<br/>1. Search arXiv<br/>2. Get Paper Details<br/>3. Download Article<br/>4. Exit]
+    I --> J{사용자 선택}
+    J -->|1| K[arXiv 검색 실행<br/>agent.search_arxiv]
+    J -->|2| L[논문 상세 정보 조회<br/>agent.get_details]
+    J -->|3| M[논문 PDF 다운로드<br/>agent.download_article]
+    J -->|4| N[종료]
+    K --> O[결과 표시]
+    L --> O
+    M --> O
+    O --> I
+    N --> P[agent.close 호출<br/>연결 종료]
 ```
 
 ## References
