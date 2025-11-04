@@ -44,6 +44,41 @@ arxiv-mcp-agent/
 └── README.md                 
 ```
 
+## Internal Architecture Flow
+```mermaid
+sequenceDiagram
+    participant User
+    participant Demo
+    participant Agent
+    participant Client
+    participant Server
+
+    User->>Demo: python demo.py
+    Demo->>Client: MCPClient initialization
+    Demo->>Client: client.connect()
+    Client->>Server: stdio connection established
+    
+    Demo->>Agent: MCPAgent(client)
+    Agent->>Client: client.list_tools()
+    Client->>Server: list_tools request
+    Server-->>Client: tools list
+    
+    User->>Demo: Select "Search arXiv"
+    Demo->>Agent: agent.search_arxiv("AI")
+    Agent->>Client: client.call_tool("search_arxiv")
+    Client->>Server: call_tool request
+    Server->>Server: arXiv API call
+    Server-->>Client: results
+    Client-->>Agent: parsed results
+    Agent-->>Demo: formatted results
+    Demo-->>User: display results
+    
+    User->>Demo: Exit
+    Demo->>Agent: agent.close()
+    Agent->>Client: client.close()
+    Client->>Server: connection closed
+```
+
 ## Installation
 
 ### Prerequisites
@@ -280,24 +315,24 @@ pytest tests/
 ### Demo Session
 ```mermaid
 flowchart TD
-    A[사용자: python examples/demo.py 실행] --> B[환경 설정 확인<br/>.env 파일 로드]
-    B --> C[MCPClient 초기화<br/>- 서버 설정<br/>- Bedrock LLM 설정<br/>- Roots 설정]
-    C --> D[프리미티브 데모 실행<br/>- Roots Demo<br/>- Sampling Demo]
-    D --> E[MCPAgent 초기화<br/>client.initialize 호출]
-    E --> F[MCPClient.connect 실행<br/>- stdio 연결<br/>- ClientSession 생성<br/>- 서버 초기화]
-    F --> G[서버 연결 완료<br/>✅ Connected to MCP server]
-    G --> H[도구 목록 조회<br/>list_tools 호출]
-    H --> I[인터랙티브 메뉴 표시<br/>1. Search arXiv<br/>2. Get Paper Details<br/>3. Download Article<br/>4. Exit]
-    I --> J{사용자 선택}
-    J -->|1| K[arXiv 검색 실행<br/>agent.search_arxiv]
-    J -->|2| L[논문 상세 정보 조회<br/>agent.get_details]
-    J -->|3| M[논문 PDF 다운로드<br/>agent.download_article]
-    J -->|4| N[종료]
-    K --> O[결과 표시]
+    A[User: python examples/demo.py] --> B[Environment Setup Check<br/>.env file loading]
+    B --> C[MCPClient Initialization<br/>- Server configuration<br/>- Bedrock LLM setup<br/>- Roots setup]
+    C --> D[Primitive Demos<br/>- Roots Demo<br/>- Sampling Demo]
+    D --> E[MCPAgent Initialization<br/>client.initialize call]
+    E --> F[MCPClient.connect<br/>- stdio connection<br/>- ClientSession creation<br/>- Server initialization]
+    F --> G[Server Connected<br/>✅ Connected to MCP server]
+    G --> H[Tool List Query<br/>list_tools call]
+    H --> I[Interactive Menu<br/>1. Search arXiv<br/>2. Get Paper Details<br/>3. Download Article<br/>4. Exit]
+    I --> J{User Selection}
+    J -->|1| K[Search arXiv<br/>agent.search_arxiv]
+    J -->|2| L[Get Paper Details<br/>agent.get_details]
+    J -->|3| M[Download Article<br/>agent.download_article]
+    J -->|4| N[Exit]
+    K --> O[Display Results]
     L --> O
     M --> O
     O --> I
-    N --> P[agent.close 호출<br/>연결 종료]
+    N --> P[agent.close<br/>Connection closed]
 ```
 
 ## References
