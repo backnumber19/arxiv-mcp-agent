@@ -1,9 +1,3 @@
-"""
-MCP Client implementation with all 3 client primitives:
-1. Roots - Filesystem boundaries
-2. Sampling - LLM output requests
-3. Elicitation - User input requests
-"""
 import asyncio
 import os
 from typing import Any, Dict, List, Optional
@@ -67,38 +61,31 @@ class MCPClient:
 
     async def _list_roots_callback(self) -> List[types.Root]:
         """Callback for Roots primitive - server requests roots list"""
-        return [
-            types.Root(uri=root["uri"], name=root["name"]) 
-            for root in self.roots
-        ]
+        return [types.Root(uri=root["uri"], name=root["name"]) for root in self.roots]
 
     async def _sampling_callback(
-        self,
-        context: RequestContext[ClientSession, None],
-        params: types.CreateMessageRequestParams
+        self, params: types.CreateMessageRequestParams
     ) -> types.CreateMessageResult:
-        """
-        Callback for Sampling primitive - server requests LLM output
-        """
-        # Extract prompt from messages
         prompt = ""
         if params.messages:
             first_msg = params.messages[0]
-            if hasattr(first_msg, 'content'):
+            if hasattr(first_msg, "content"):
                 if isinstance(first_msg.content, list) and first_msg.content:
                     content = first_msg.content[0]
                     if isinstance(content, types.TextContent):
                         prompt = content.text
                 elif isinstance(first_msg.content, types.TextContent):
                     prompt = first_msg.content.text
-        
+
         if not prompt:
             prompt = ""
 
         try:
             response = self.llm.invoke(prompt)
-            content = response.content if hasattr(response, "content") else str(response)
-            
+            content = (
+                response.content if hasattr(response, "content") else str(response)
+            )
+
             return types.CreateMessageResult(
                 role="assistant",
                 content=types.TextContent(type="text", text=content),
@@ -113,39 +100,16 @@ class MCPClient:
                 stopReason="stop",
             )
 
-    async def _elicitation_callback(self, params: Dict[str, Any]) -> str:
-        """
-        Callback for Elicitation primitive - server requests user input
-        
-        Note: Using simple Dict-based signature for compatibility with demo.py
-        MCP specification: https://modelcontextprotocol.io/specification/2025-06-18/client/elicitation
-        """
-        prompt = params.get("prompt", "")
-        request_id = params.get("request_id")
-
-        if not prompt:
-            return ""
-
-        self.pending_elicitation = {
-            "request_id": request_id,
-            "prompt": prompt,
-            "params": params,
-        }
-
-        print(f"Elicitation request: {prompt}")
-        return ""
-
     async def connect(self):
         """Connect to MCP server"""
         self._stdio_context = stdio_client(self.server_params)
         self._read, self._write = await self._stdio_context.__aenter__()
-        
+
         self._session_context = ClientSession(
             self._read,
             self._write,
             sampling_callback=self._sampling_callback,
             list_roots_callback=self._list_roots_callback,
-            elicitation_callback=self._elicitation_callback,
         )
         self.session = await self._session_context.__aenter__()
 
@@ -160,7 +124,10 @@ class MCPClient:
 
         try:
             result = await self.session.list_tools()
-            return [{"name": tool.name, "description": tool.description} for tool in result.tools]
+            return [
+                {"name": tool.name, "description": tool.description}
+                for tool in result.tools
+            ]
         except Exception as e:
             print(f"❌ Error listing tools: {e}")
             return []
@@ -172,16 +139,17 @@ class MCPClient:
 
         try:
             result = await self.session.call_tool(name, arguments)
-            
+
             if result.content:
                 first_content = result.content[0]
-                
+
                 if hasattr(first_content, "text"):
                     text_result = first_content.text
-                    
+
                     if isinstance(text_result, str):
                         if text_result.strip().startswith(("{", "[")):
                             import json
+
                             try:
                                 return json.loads(text_result)
                             except json.JSONDecodeError:
@@ -192,14 +160,15 @@ class MCPClient:
                     return first_content.data
                 else:
                     return str(first_content)
-            
+
             if hasattr(result, "structuredContent") and result.structuredContent:
                 return result.structuredContent
-            
+
             return {"result": "No content returned"}
         except Exception as e:
-            print(f"❌ Error calling tool {name}: {e}")
+            print(f"Error calling tool {name}: {e}")
             import traceback
+
             traceback.print_exc()
             return {"error": str(e)}
 
@@ -210,7 +179,10 @@ class MCPClient:
 
         try:
             result = await self.session.list_resources()
-            return [{"uri": r.uri, "name": r.name, "mimeType": r.mimeType} for r in result.resources]
+            return [
+                {"uri": r.uri, "name": r.name, "mimeType": r.mimeType}
+                for r in result.resources
+            ]
         except Exception as e:
             print(f"❌ Error listing resources: {e}")
             return []
@@ -232,40 +204,6 @@ class MCPClient:
         except Exception as e:
             return {"error": str(e)}
 
-    def get_pending_elicitation(self) -> Optional[Dict[str, Any]]:
-        """Get pending elicitation request"""
-        return self.pending_elicitation
-
-    async def respond_elicitation(
-        self, response: str, request_id: Optional[str] = None
-    ):
-        """Respond to elicitation request"""
-        if not self.session:
-            return
-
-        request_id = request_id or (
-            self.pending_elicitation.get("request_id")
-            if self.pending_elicitation
-            else None
-        )
-
-        if not request_id:
-            print("❌ No pending elicitation request")
-            return
-
-        try:
-            await self.session.send_notification(
-                "elicitation/response",
-                {
-                    "request_id": request_id,
-                    "response": response,
-                },
-            )
-            self.pending_elicitation = None
-            print(f"✅ Elicitation response sent: {response}")
-        except Exception as e:
-            print(f"❌ Error responding to elicitation: {e}")
-
     async def close(self):
         """Close connection to server"""
         if self.session and self._session_context:
@@ -275,14 +213,14 @@ class MCPClient:
                 pass
             self.session = None
             self._session_context = None
-        
+
         if self._stdio_context:
             try:
                 await self._stdio_context.__aexit__(None, None, None)
             except Exception:
                 pass
             self._stdio_context = None
-        
+
         self._read = None
         self._write = None
         self._connected = False

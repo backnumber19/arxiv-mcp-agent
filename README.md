@@ -50,6 +50,7 @@ sequenceDiagram
     participant User
     participant Demo
     participant Agent
+    participant LLM
     participant Client
     participant Server
 
@@ -62,16 +63,31 @@ sequenceDiagram
     Agent->>Client: client.list_tools()
     Client->>Server: list_tools request
     Server-->>Client: tools list
+    Client-->>Agent: tools cached
     
-    User->>Demo: Select "Search arXiv"
-    Demo->>Agent: agent.search_arxiv("AI")
-    Agent->>Client: client.call_tool("search_arxiv")
+    User->>Demo: Natural language request<br/>"Find papers about AI"
+    Demo->>Agent: agent.process_user_request(query)
+    
+    Note over Agent,LLM: LLM Tool Selection
+    Agent->>Agent: _format_tools_for_llm()
+    Agent->>LLM: Prompt with tools + user query
+    LLM->>LLM: Analyze request & select tool
+    LLM-->>Agent: JSON: {"tool_name": "search_arxiv",<br/>"arguments": {...}}
+    Agent->>Agent: _extract_json_from_response()
+    Agent->>Agent: Validate tool selection
+    
+    Note over Agent,Server: MCP Tool Execution
+    Agent->>Client: client.call_tool(tool_name, arguments)
     Client->>Server: call_tool request
     Server->>Server: arXiv API call
     Server-->>Client: results
     Client-->>Agent: parsed results
-    Agent-->>Demo: formatted results
-    Demo-->>User: display results
+    
+    Note over Agent,LLM: LLM Result Explanation
+    Agent->>LLM: Explain results to user
+    LLM-->>Agent: Natural language explanation
+    Agent-->>Demo: Explanation
+    Demo-->>User: Display results
     
     User->>Demo: Exit
     Demo->>Agent: agent.close()
@@ -148,56 +164,17 @@ async def main():
         ]
     )
     
-    # Create agent
     agent = MCPAgent(client)
     await agent.initialize()
     
-    # Search arXiv
-    results = await agent.search_arxiv(all_fields="machine learning")
-    
-    # Get article details
-    details = await agent.get_details("Attention Is All You Need")
-    
-    # Download article
-    download_result = await agent.download_article("Attention Is All You Need")
+    # LLM automatically selects tools
+    result1 = await agent.process_user_request("Find papers about machine learning")
+    result2 = await agent.process_user_request("Download the paper: Attention Is All You Need")
+    result3 = await agent.process_user_request("Get details for transformer architecture")
     
     await agent.close()
 
 asyncio.run(main())
-```
-
-### MCP Client Primitives
-
-#### 1. Roots
-Defines filesystem boundaries that the server can access:
-
-```python
-roots = [
-    {"uri": "file:///path/to/allowed/dir", "name": "Allowed Directory"}
-]
-client = MCPClient(..., roots=roots)
-```
-
-#### 2. Sampling
-Enables server to request LLM output. Configured with AWS Bedrock:
-
-```python
-# Configured via environment variables or bedrock_config parameter
-bedrock_config = {
-    "region": "us-west-2",
-    "model_id": "anthropic.claude-3-haiku-20240307-v1:0"
-}
-```
-
-#### 3. Elicitation
-Allows server to request user input:
-
-```python
-# Check for pending requests
-pending = client.get_pending_elicitation()
-if pending:
-    response = input(pending["prompt"])
-    await client.respond_elicitation(response, pending["request_id"])
 ```
 
 ## Architecture
@@ -206,16 +183,17 @@ if pending:
 Core client implementation with:
 - `_list_roots_callback()`: Returns configured filesystem roots
 - `_sampling_callback()`: Handles LLM requests via Bedrock
-- `_elicitation_callback()`: Manages user input requests
 - `connect()`: Establishes stdio connection to server
 - `call_tool()`: Invokes server tools
 - `list_tools()`: Enumerates available server tools
 
 ### MCPAgent (`src/client/agent.py`)
-High-level wrapper providing:
-- Convenient methods for arXiv operations
-- Result parsing and error handling
-- Tool caching for performance
+LLM-powered agent providing:
+- `process_user_request()`: Main entry point for natural language requests
+- `_llm_select_tool()`: LLM-based automatic tool selection
+- `_llm_explain_result()`: LLM-based result explanation
+- `_format_tools_for_llm()`: Formats available tools for LLM understanding
+- Tool caching and validation
 
 ### Server (`src/server/src/arxiv_server/server.py`)
 
@@ -310,29 +288,33 @@ pytest tests/
    - Verify all dependencies are installed
    - Check server logs for detailed error messages
 
+5. **LLM tool selection errors**
+   - Verify Bedrock is configured correctly
+   - Check LLM response format (should be JSON)
+   - Review tool descriptions for clarity
+
 ## Example Output
 
 ### Demo Session
 ```mermaid
 flowchart TD
-    A[User: python examples/demo.py] --> B[Environment Setup Check<br/>.env file loading]
-    B --> C[MCPClient Initialization<br/>- Server configuration<br/>- Bedrock LLM setup<br/>- Roots setup]
-    C --> D[Primitive Demos<br/>- Roots Demo<br/>- Sampling Demo]
-    D --> E[MCPAgent Initialization<br/>client.initialize call]
-    E --> F[MCPClient.connect<br/>- stdio connection<br/>- ClientSession creation<br/>- Server initialization]
-    F --> G[Server Connected<br/>✅ Connected to MCP server]
-    G --> H[Tool List Query<br/>list_tools call]
-    H --> I[Interactive Menu<br/>1. Search arXiv<br/>2. Get Paper Details<br/>3. Download Article<br/>4. Exit]
-    I --> J{User Selection}
-    J -->|1| K[Search arXiv<br/>agent.search_arxiv]
-    J -->|2| L[Get Paper Details<br/>agent.get_details]
-    J -->|3| M[Download Article<br/>agent.download_article]
-    J -->|4| N[Exit]
-    K --> O[Display Results]
-    L --> O
-    M --> O
-    O --> I
-    N --> P[agent.close<br/>Connection closed]
+    A[MCPAgent Initialization<br/>agent = MCPAgent(client)] --> B[agent.initialize]
+    B --> C[MCPClient.connect<br/>- stdio connection<br/>- ClientSession creation<br/>- Server initialization]
+    C --> D[Server Connected<br/>✅ Connected to MCP server]
+    D --> E[Tool List Query<br/>client.list_tools]
+    E --> F[Tools Cached<br/>Available tools loaded]
+    F --> G[Display Available Tools<br/>- search_arxiv<br/>- get_details<br/>- download_article<br/>...]
+    G --> H[Interactive Menu<br/>1. Custom Request<br/>2. Exit]
+    H --> I{User Selection}
+    I -->|1| J[User Input:<br/>Natural Language Query]
+    I -->|2| K[Exit]
+    J --> L[Agent:<br/>process_user_request]
+    L --> M[LLM Tool Selection<br/>_llm_select_tool<br/>Analyze intent]
+    M --> N[Execute Tool<br/>client.call_tool<br/>via MCP Protocol]
+    N --> O[LLM Result<br/>Explanation<br/>_llm_explain_result]
+    O --> P[Display Results]
+    P --> H
+    K --> Q[agent.close<br/>Connection closed]
 ```
 
 ## References
