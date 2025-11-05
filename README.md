@@ -298,20 +298,20 @@ pytest tests/
 ### Demo Session
 ```mermaid
 flowchart TD
-    A[MCPAgent Initialization<br/>agent = MCPAgent(client)] --> B[agent.initialize]
-    B --> C[MCPClient.connect<br/>- stdio connection<br/>- ClientSession creation<br/>- Server initialization]
-    C --> D[Server Connected<br/>✅ Connected to MCP server]
+    A[MCPAgent Initialization<br/>agent = MCPAgent client] --> B[agent.initialize]
+    B --> C[MCPClient.connect<br/>stdio connection established]
+    C --> D[Server Connected<br/>Connected to MCP server]
     D --> E[Tool List Query<br/>client.list_tools]
     E --> F[Tools Cached<br/>Available tools loaded]
-    F --> G[Display Available Tools<br/>- search_arxiv<br/>- get_details<br/>- download_article<br/>...]
-    G --> H[Interactive Menu<br/>1. Custom Request<br/>2. Exit]
+    F --> G[Display Available Tools]
+    G --> H[Interactive Menu<br/>1. Custom Request 2. Exit]
     H --> I{User Selection}
-    I -->|1| J[User Input:<br/>Natural Language Query]
+    I -->|1| J[User Input<br/>Natural Language Query]
     I -->|2| K[Exit]
-    J --> L[Agent:<br/>process_user_request]
-    L --> M[LLM Tool Selection<br/>_llm_select_tool<br/>Analyze intent]
-    M --> N[Execute Tool<br/>client.call_tool<br/>via MCP Protocol]
-    N --> O[LLM Result<br/>Explanation<br/>_llm_explain_result]
+    J --> L[Agent<br/>process_user_request]
+    L --> M[LLM Tool Selection<br/>_llm_select_tool]
+    M --> N[Execute Tool<br/>client.call_tool via MCP]
+    N --> O[LLM Result Explanation<br/>_llm_explain_result]
     O --> P[Display Results]
     P --> H
     K --> Q[agent.close<br/>Connection closed]
