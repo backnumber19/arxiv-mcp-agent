@@ -51,60 +51,6 @@ async def demo_roots(client: MCPClient):
     print("   Roots callback working correctly!")
 
 
-async def demo_search_arxiv(agent: MCPAgent):
-    print("\n" + "=" * 80)
-    print("ARXIV SEARCH DEMO (LLM-based)")
-    print("=" * 80)
-
-    print("\nEnter your search request:")
-    user_query = input("   Your query: ").strip()
-    if not user_query:
-        user_query = "Find papers about machine learning"
-        print(f"   Using default: {user_query}")
-
-    print(f"\nProcessing request: {user_query}")
-    explanation = await agent.process_user_request(user_query)
-
-    print(f"\nResult:")
-    print(f"   {explanation}")
-
-
-async def demo_get_details(agent: MCPAgent):
-    print("\n" + "=" * 80)
-    print("GET PAPER DETAILS DEMO (LLM-based)")
-    print("=" * 80)
-
-    title = input("\nEnter paper title (or press Enter for default): ").strip()
-    if not title:
-        title = "Attention Is All You Need"
-
-    user_query = f"Get details for the paper: {title}"
-    print(f"\nProcessing request: {user_query}")
-
-    explanation = await agent.process_user_request(user_query)
-
-    print(f"\nResult:")
-    print(f"   {explanation}")
-
-
-async def demo_download_article(agent: MCPAgent):
-    print("\n" + "=" * 80)
-    print("DOWNLOAD ARTICLE DEMO (LLM-based)")
-    print("=" * 80)
-
-    title = input("\nEnter paper title to download: ").strip()
-    if not title:
-        title = "Attention Is All You Need"
-
-    user_query = f"Download the paper: {title}"
-    print(f"\nProcessing request: {user_query}")
-
-    explanation = await agent.process_user_request(user_query)
-
-    print(f"\nResult:")
-    print(f"   {explanation}")
-
-
 async def main():
     print("=" * 80)
     print("MCP CLIENT DEMO - arXiv Integration")
